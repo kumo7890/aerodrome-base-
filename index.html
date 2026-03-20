@@ -273,9 +273,20 @@
 
 <script>
 const RPC = "https://mainnet.base.org";
-const SUBGRAPH = "https://api.studio.thegraph.com/query/73458/aerodrome-finance/version/latest";
-// Known ERC20 token addresses on Base
-const TOKENS = {
+
+// Use DeFiLlama's free API for CL pool TVL data
+const LLAMA_BASE = "https://coins.llama.fi";
+
+const POOLS = [
+  { address:"0x70acdf2ad0bf2402c957154f944c19ef4e1cbae1", name:"WETH/cbBTC",  token0:"WETH",  token1:"cbBTC", stable:false, d0:18, d1:8  },
+  { address:"0x6cdcb1c4a4d1c3c6d054b27ac5b77e89eafb971d", name:"USDC/AERO",  token0:"USDC",  token1:"AERO",  stable:false, d0:6,  d1:18 },
+  { address:"0x74f72788f4814d7ff3c49b44684aa98eee140c0e", name:"WETH/msETH", token0:"WETH",  token1:"msETH", stable:false, d0:18, d1:18 },
+  { address:"0xb2cc224c1c9fee385f8ad6a55b4d94e92359dc59", name:"WETH/USDC",  token0:"WETH",  token1:"USDC",  stable:false, d0:18, d1:6  },
+  { address:"0x7501bc8bb51616f79bfa524e464fb7b41f0b10fb", name:"msUSD/USDC", token0:"msUSD", token1:"USDC",  stable:true,  d0:18, d1:6  },
+];
+
+// Known token addresses on Base
+const TOKEN_ADDRS = {
   WETH:  "0x4200000000000000000000000000000000000006",
   USDC:  "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
   AERO:  "0x940181a94A35A4569E4529A3CDfB74e38FD98631",
@@ -284,13 +295,6 @@ const TOKENS = {
   msUSD: "0x526728DBc96689597F85ae4cd716d4f7fCcBAE9C",
 };
 
-const POOLS = [
-  { address:"0x70acdf2ad0bf2402c957154f944c19ef4e1cbae1", name:"WETH/cbBTC",  token0:"WETH",  token1:"cbBTC", stable:false, d0:18, d1:8,  t0:TOKENS.WETH,  t1:TOKENS.cbBTC },
-  { address:"0x6cdcb1c4a4d1c3c6d054b27ac5b77e89eafb971d", name:"USDC/AERO",  token0:"USDC",  token1:"AERO",  stable:false, d0:6,  d1:18, t0:TOKENS.USDC,  t1:TOKENS.AERO  },
-  { address:"0x74f72788f4814d7ff3c49b44684aa98eee140c0e", name:"WETH/msETH", token0:"WETH",  token1:"msETH", stable:false, d0:18, d1:18, t0:TOKENS.WETH,  t1:TOKENS.msETH },
-  { address:"0xb2cc224c1c9fee385f8ad6a55b4d94e92359dc59", name:"WETH/USDC",  token0:"WETH",  token1:"USDC",  stable:false, d0:18, d1:6,  t0:TOKENS.WETH,  t1:TOKENS.USDC  },
-  { address:"0x7501bc8bb51616f79bfa524e464fb7b41f0b10fb", name:"msUSD/USDC", token0:"msUSD", token1:"USDC",  stable:true,  d0:18, d1:6,  t0:TOKENS.msUSD, t1:TOKENS.USDC  },
-];
 const CONDITIONS = { tvl_below:"TVL drops below", tvl_above:"TVL rises above", ratio_change_pct:"Ratio changes by %" };
 
 let poolData = POOLS.map(p => ({...p, r0:null, r1:null, history:[]}));
@@ -299,7 +303,6 @@ let triggered = [];
 let lastRatios = {};
 let cooldowns = {};
 
-// Populate alert pool select
 const alertPoolSel = document.getElementById("alertPool");
 POOLS.forEach((p,i) => { const o = document.createElement("option"); o.value=i; o.textContent=p.name; alertPoolSel.appendChild(o); });
 
@@ -310,53 +313,44 @@ async function rpc(method, params) {
   return d.result;
 }
 
-async function getReserves(addr, t0addr, t1addr) {
-  // Method 1: Basic AMM — getReserves()
+// Get token balances held by a pool using multicall-style approach
+async function getPoolBalances(poolAddr, tok0sym, tok1sym) {
+  const tok0 = TOKEN_ADDRS[tok0sym];
+  const tok1 = TOKEN_ADDRS[tok1sym];
+  if (!tok0 || !tok1) return null;
+
+  const pad = "000000000000000000000000" + poolAddr.slice(2).toLowerCase();
+  const sel = "0x70a08231"; // balanceOf selector
+
   try {
-    const hex = await rpc("eth_call", [{to:addr, data:"0x0902f1ac"},"latest"]);
+    const [b0, b1] = await Promise.all([
+      rpc("eth_call", [{to: tok0, data: sel + pad}, "latest"]),
+      rpc("eth_call", [{to: tok1, data: sel + pad}, "latest"]),
+    ]);
+    if (!b0 || b0 === "0x" || !b1 || b1 === "0x") return null;
+    const r0 = BigInt(b0);
+    const r1 = BigInt(b1);
+    if (r0 === 0n && r1 === 0n) return null;
+    return { r0, r1 };
+  } catch(e) {
+    console.error("balanceOf failed:", poolAddr, e);
+    return null;
+  }
+}
+
+async function getReserves(pool) {
+  // Method 1: Basic AMM getReserves()
+  try {
+    const hex = await rpc("eth_call", [{to: pool.address, data: "0x0902f1ac"}, "latest"]);
     if (hex && hex !== "0x" && hex.length >= 130) {
-      const r0 = BigInt("0x"+hex.slice(2,66));
-      const r1 = BigInt("0x"+hex.slice(66,130));
+      const r0 = BigInt("0x" + hex.slice(2, 66));
+      const r1 = BigInt("0x" + hex.slice(66, 130));
       if (r0 > 0n || r1 > 0n) return { r0, r1 };
     }
   } catch(e) {}
 
-  // Method 2: CL pool — read token0/token1 from pool, then balanceOf(pool)
-  try {
-    const t0res = await rpc("eth_call", [{to:addr, data:"0x0dfe1681"},"latest"]);
-    const t1res = await rpc("eth_call", [{to:addr, data:"0xd21220a7"},"latest"]);
-    console.log("CL debug", addr.slice(0,10), "t0res:", t0res, "t1res:", t1res);
-    if (t0res && t0res.length >= 66 && t1res && t1res.length >= 66) {
-      const tok0 = "0x" + t0res.slice(-40);
-      const tok1 = "0x" + t1res.slice(-40);
-      console.log("CL tokens", tok0, tok1);
-      const param = "000000000000000000000000" + addr.slice(2).toLowerCase();
-      const bal0 = await rpc("eth_call", [{to:tok0, data:"0x70a08231"+param},"latest"]);
-      const bal1 = await rpc("eth_call", [{to:tok1, data:"0x70a08231"+param},"latest"]);
-      console.log("CL balances", bal0, bal1);
-      if (bal0 && bal0 !== "0x" && bal1 && bal1 !== "0x") {
-        const r0 = BigInt(bal0);
-        const r1 = BigInt(bal1);
-        if (r0 > 0n || r1 > 0n) return { r0, r1 };
-      }
-    }
-  } catch(e) { console.error("CL method2 error", e); }
-
-  // Method 3: Fallback — use hardcoded token addresses
-  if (t0addr && t1addr) {
-    try {
-      const param = "000000000000000000000000" + addr.slice(2).toLowerCase();
-      const bal0 = await rpc("eth_call", [{to:t0addr, data:"0x70a08231"+param},"latest"]);
-      const bal1 = await rpc("eth_call", [{to:t1addr, data:"0x70a08231"+param},"latest"]);
-      if (bal0 && bal0 !== "0x" && bal1 && bal1 !== "0x") {
-        const r0 = BigInt(bal0);
-        const r1 = BigInt(bal1);
-        if (r0 > 0n || r1 > 0n) return { r0, r1 };
-      }
-    } catch(e) { console.error("CL method3 error", e); }
-  }
-
-  return null;
+  // Method 2: Read token balances directly from token contracts
+  return await getPoolBalances(pool.address, pool.token0, pool.token1);
 }
 
 function fmt(n) {
@@ -438,7 +432,6 @@ function checkAlerts(snapshot) {
     const r1 = Number(pool.r1)/(10**pool.d1);
     const ratio = r0>0 ? r1/r0 : 0;
     let fire=false, detail="";
-
     if(alert.condition==="tvl_below"&&r0<parseFloat(alert.value)){fire=true;detail=`r0=${r0.toFixed(4)}`;}
     if(alert.condition==="tvl_above"&&r0>parseFloat(alert.value)){fire=true;detail=`r0=${r0.toFixed(4)}`;}
     if(alert.condition==="ratio_change_pct"){
@@ -446,7 +439,6 @@ function checkAlerts(snapshot) {
       if(last){const pct=Math.abs((ratio-last)/last)*100;if(pct>=parseFloat(alert.value)){fire=true;detail=`${pct.toFixed(2)}% change`;}}
       lastRatios[alert.poolIdx]=ratio;
     }
-
     const key=`${alert.id}`;
     if(fire&&(!cooldowns[key]||now-cooldowns[key]>300000)){
       const msg=`🚨 ${POOLS[alert.poolIdx].name}: ${CONDITIONS[alert.condition]} ${alert.value} (${detail})`;
@@ -459,14 +451,12 @@ function checkAlerts(snapshot) {
 
 function renderTriggered() {
   if(!triggered.length) return;
-  // Dashboard
   document.getElementById("triggeredSection").style.display="block";
   document.getElementById("triggeredList").innerHTML = triggered.slice(-5).map(t=>`
     <div class="triggered-banner">
       <span class="triggered-msg">${t.msg}</span>
       <span class="triggered-time">${t.time.toLocaleTimeString()}</span>
     </div>`).join("");
-  // History tab
   document.getElementById("triggeredHistorySection").style.display="block";
   document.getElementById("triggeredHistory").innerHTML = triggered.map(t=>`
     <div style="font-size:11px;color:#ff9090;padding:8px 0;border-bottom:1px solid #0d1f30;display:flex;justify-content:space-between">
@@ -507,8 +497,6 @@ function removeAlert(id) {
 async function loadAll() {
   const btn = document.getElementById("refreshBtn");
   btn.disabled=true; btn.textContent="SYNCING...";
-
-  // Render skeleton
   poolData = poolData.map(p=>({...p, r0:null, r1:null, error:false}));
   renderPools();
 
@@ -520,7 +508,7 @@ async function loadAll() {
 
     await Promise.all(poolData.map(async (pool,i)=>{
       try {
-        const res = await getReserves(pool.address, pool.t0, pool.t1);
+        const res = await getReserves(pool);
         if(res){
           poolData[i].r0 = res.r0;
           poolData[i].r1 = res.r1;
@@ -544,7 +532,6 @@ function switchTab(name, el) {
   document.getElementById("tab-alerts").style.display = name==="alerts"?"block":"none";
 }
 
-// Init
 loadAll();
 setInterval(loadAll, 15000);
 </script>
