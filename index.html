@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Aerodrome Base Analytics</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap');
+
+    :root {
+      --bg: #080c10;
+      --surface: #0a1520;
+      --surface2: #0d1f30;
+      --border: #1a3a5c;
+      --border2: #1e4d6b;
+      --cyan: #00d4ff;
+      --green: #00ff88;
+      --amber: #ffaa00;
+      --red: #ff5050;
+      --muted: #4a7fa5;
+      --text: #e2e8f0;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'JetBrains Mono', monospace;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* HEADER */
+    header {
+      background: linear-gradient(135deg, #0a0f1a, #0d1b2a, #091520);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+    }
+    .header-inner {
+      max-width: 1200px; margin: 0 auto;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 64px;
+    }
+    .logo { display: flex; align-items: center; gap: 12px; }
+    .logo-icon {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: linear-gradient(135deg, #00d4ff, #0066ff);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; font-weight: bold; color: #fff;
+      box-shadow: 0 0 16px rgba(0,212,255,0.4);
+    }
+    .logo-title { font-size: 16px; font-weight: 700; letter-spacing: 2px; color: var(--cyan); }
+    .logo-sub { font-size: 10px; color: var(--muted); letter-spacing: 3px; }
+    .header-right { display: flex; align-items: center; gap: 16px; }
+    .block-badge { font-size: 11px; color: var(--muted); }
+    .block-badge span { color: var(--green); margin-right: 6px; }
+    .refresh-btn {
+      background: transparent; border: 1px solid var(--border);
+      color: var(--cyan); padding: 6px 14px; cursor: pointer;
+      font-size: 11px; letter-spacing: 1px; border-radius: 4px;
+      font-family: inherit; transition: all 0.2s;
+    }
+    .refresh-btn:hover { border-color: var(--cyan); background: rgba(0,212,255,0.05); }
+    .refresh-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* TABS */
+    nav { border-bottom: 1px solid #0d1f30; padding: 0 24px; }
+    .nav-inner { max-width: 1200px; margin: 0 auto; display: flex; }
+    .tab-btn {
+      background: none; border: none;
+      border-bottom: 2px solid transparent;
+      color: var(--muted); padding: 16px 20px; cursor: pointer;
+      font-size: 11px; letter-spacing: 2px; font-family: inherit;
+      text-transform: uppercase; transition: all 0.2s;
+    }
+    .tab-btn.active { color: var(--cyan); border-bottom-color: var(--cyan); }
+
+    /* MAIN */
+    main { max-width: 1200px; margin: 0 auto; padding: 24px; }
+
+    /* STATS ROW */
+    .stats-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; margin-bottom: 24px; }
+    .stat-card {
+      background: linear-gradient(135deg, var(--surface), var(--surface2));
+      border: 1px solid var(--border); border-radius: 8px; padding: 20px 24px;
+    }
+    .stat-label { font-size: 10px; color: var(--muted); letter-spacing: 2px; margin-bottom: 8px; }
+    .stat-value { font-size: 24px; font-weight: 700; }
+
+    /* POOL GRID */
+    .pool-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px,1fr)); gap: 16px; }
+    .pool-card {
+      background: linear-gradient(135deg, var(--surface), var(--surface2));
+      border: 1px solid var(--border2); border-radius: 8px; padding: 20px;
+      transition: border-color 0.3s;
+    }
+    .pool-card:hover { border-color: var(--cyan); }
+    .pool-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+    .pool-name { font-size: 14px; font-weight: 700; letter-spacing: 1px; }
+    .pool-meta { font-size: 10px; color: var(--muted); margin-top: 4px; }
+    .badge {
+      padding: 3px 8px; border-radius: 4px; font-size: 10px; letter-spacing: 1px;
+      white-space: nowrap;
+    }
+    .badge-live { background: rgba(0,255,136,0.1); color: var(--green); border: 1px solid rgba(0,255,136,0.3); }
+    .badge-loading { background: #1a2233; color: var(--muted); border: 1px solid var(--border); }
+    .badge-error { background: rgba(255,80,80,0.1); color: var(--red); border: 1px solid rgba(255,80,80,0.3); }
+
+    .reserves { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+    .reserve-box { background: #060d14; border-radius: 6px; padding: 12px; }
+    .reserve-label { font-size: 9px; color: var(--muted); letter-spacing: 1px; margin-bottom: 4px; }
+    .reserve-value { font-size: 13px; font-weight: 700; }
+
+    .pool-footer { display: flex; justify-content: space-between; align-items: center; }
+    .ratio-text { font-size: 10px; color: var(--muted); }
+    .ratio-val { color: var(--amber); }
+
+    canvas.sparkline { display: block; }
+
+    .skeleton { height: 60px; background: var(--surface2); border-radius: 4px; animation: shimmer 1.5s infinite; }
+    @keyframes shimmer { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+    /* ALERTS TAB */
+    .alerts-wrap { max-width: 640px; }
+    .section-label { font-size: 11px; color: var(--muted); letter-spacing: 2px; margin-bottom: 20px; }
+    .alert-form {
+      background: linear-gradient(135deg, var(--surface), var(--surface2));
+      border: 1px solid var(--border); border-radius: 8px; padding: 24px; margin-bottom: 24px;
+    }
+    .form-title { font-size: 12px; color: var(--cyan); letter-spacing: 2px; margin-bottom: 20px; }
+    .form-group { margin-bottom: 14px; }
+    .form-label { font-size: 10px; color: var(--muted); letter-spacing: 1px; display: block; margin-bottom: 6px; }
+    .form-control {
+      width: 100%; background: #060d14; border: 1px solid var(--border);
+      color: var(--text); padding: 10px 12px; border-radius: 4px;
+      font-family: inherit; font-size: 12px;
+    }
+    .form-control:focus { outline: none; border-color: var(--cyan); }
+    .btn-primary {
+      width: 100%; background: linear-gradient(135deg, #004d80, #0066aa);
+      border: none; color: #fff; padding: 12px; border-radius: 4px;
+      cursor: pointer; font-family: inherit; font-size: 11px;
+      letter-spacing: 2px; font-weight: 700;
+    }
+    .btn-primary:hover { background: linear-gradient(135deg, #005c99, #0077cc); }
+
+    .alert-item {
+      background: linear-gradient(135deg, var(--surface), var(--surface2));
+      border: 1px solid var(--border); border-radius: 6px;
+      padding: 14px 16px; margin-bottom: 8px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .alert-item-text { font-size: 12px; }
+    .alert-item-sub { font-size: 10px; color: var(--muted); margin-top: 4px; }
+    .btn-remove {
+      background: rgba(255,80,80,0.1); border: 1px solid rgba(255,80,80,0.3);
+      color: var(--red); padding: 4px 10px; border-radius: 4px;
+      cursor: pointer; font-family: inherit; font-size: 11px; white-space: nowrap;
+    }
+
+    .triggered-banner {
+      background: rgba(255,80,80,0.08); border: 1px solid rgba(255,80,80,0.3);
+      border-radius: 6px; padding: 10px 16px; margin-bottom: 8px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .triggered-msg { font-size: 13px; color: #ff9090; }
+    .triggered-time { font-size: 10px; color: var(--muted); }
+
+    .empty-state { color: var(--muted); font-size: 12px; text-align: center; padding: 32px 0; }
+
+    @media (max-width: 600px) {
+      .stats-row { grid-template-columns: 1fr; }
+      .pool-grid { grid-template-columns: 1fr; }
+      .header-inner { flex-wrap: wrap; height: auto; padding: 12px 0; gap: 12px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="logo">
+      <div class="logo-icon">A</div>
+      <div>
+        <div class="logo-title">AERODROME</div>
+        <div class="logo-sub">BASE CHAIN ANALYTICS</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="block-badge" id="blockBadge" style="display:none">
+        <span>●</span><span id="blockNum">—</span>
+      </div>
+      <button class="refresh-btn" id="refreshBtn" onclick="loadAll()">↻ REFRESH</button>
+    </div>
+  </div>
+</header>
+
+<nav>
+  <div class="nav-inner">
+    <button class="tab-btn active" onclick="switchTab('dashboard', this)">Dashboard</button>
+    <button class="tab-btn" onclick="switchTab('alerts', this)">Alerts</button>
+  </div>
+</nav>
+
+<main>
+  <!-- DASHBOARD TAB -->
+  <div id="tab-dashboard">
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label">POOLS LIVE</div>
+        <div class="stat-value" id="statLive" style="color:var(--green)">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">TOTAL RESERVE0 (ETH equiv)</div>
+        <div class="stat-value" id="statTVL" style="color:var(--cyan)">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">LAST UPDATED</div>
+        <div class="stat-value" id="statTime" style="color:var(--amber); font-size:16px">—</div>
+      </div>
+    </div>
+
+    <div class="pool-grid" id="poolGrid"></div>
+
+    <div id="triggeredSection" style="margin-top:24px; display:none">
+      <div style="font-size:11px; color:var(--red); letter-spacing:2px; margin-bottom:12px">⚠ TRIGGERED ALERTS</div>
+      <div id="triggeredList"></div>
+    </div>
+  </div>
+
+  <!-- ALERTS TAB -->
+  <div id="tab-alerts" style="display:none">
+    <div class="alerts-wrap">
+      <div class="section-label">CONFIGURE POOL ALERTS · Checks every 15s</div>
+
+      <div class="alert-form">
+        <div class="form-title">+ NEW ALERT</div>
+        <div class="form-group">
+          <label class="form-label">POOL</label>
+          <select class="form-control" id="alertPool"></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">CONDITION</label>
+          <select class="form-control" id="alertCondition">
+            <option value="tvl_below">TVL drops below</option>
+            <option value="tvl_above">TVL rises above</option>
+            <option value="ratio_change_pct">Price ratio changes by %</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">THRESHOLD VALUE</label>
+          <input class="form-control" type="number" id="alertValue" placeholder="e.g. 100" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">TELEGRAM USERNAME (for reference)</label>
+          <input class="form-control" type="text" id="alertTelegram" placeholder="@yourusername" />
+        </div>
+        <button class="btn-primary" onclick="addAlert()">+ CREATE ALERT</button>
+      </div>
+
+      <div id="alertListSection">
+        <div class="section-label">ACTIVE ALERTS</div>
+        <div id="alertList"><div class="empty-state">No alerts configured.</div></div>
+      </div>
+
+      <div id="triggeredHistorySection" style="margin-top:24px; display:none">
+        <div class="section-label" style="color:var(--red)">ALERT HISTORY</div>
+        <div id="triggeredHistory"></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+const RPC = "https://mainnet.base.org";
+const POOLS = [
+  { address:"0xcDAC0d6c6C59727a65F871236188350531885C43", name:"WETH/USDC",   token0:"WETH",  token1:"USDC",  stable:false, d0:18, d1:6  },
+  { address:"0x7c2eA10D3e5922ba3bBBafa39Dc0f59b3C1F2cC", name:"WETH/cbETH", token0:"WETH",  token1:"cbETH", stable:false, d0:18, d1:18 },
+  { address:"0xB4885Bc63399BF5518b994c1545d85688b7f710a", name:"USDC/USDbC", token0:"USDC",  token1:"USDbC", stable:true,  d0:6,  d1:6  },
+  { address:"0x6cDcb1C4A4D1C3C6d054b27AC5B77e89eAFb971b", name:"AERO/WETH", token0:"AERO",  token1:"WETH",  stable:false, d0:18, d1:18 },
+  { address:"0x2578365B3dfFa79b79cA3E09f5A6c05A19bfE46", name:"USDC/DAI",   token0:"USDC",  token1:"DAI",   stable:true,  d0:6,  d1:18 },
+];
+const CONDITIONS = { tvl_below:"TVL drops below", tvl_above:"TVL rises above", ratio_change_pct:"Ratio changes by %" };
+
+let poolData = POOLS.map(p => ({...p, r0:null, r1:null, history:[]}));
+let alerts = [];
+let triggered = [];
+let lastRatios = {};
+let cooldowns = {};
+
+// Populate alert pool select
+const alertPoolSel = document.getElementById("alertPool");
+POOLS.forEach((p,i) => { const o = document.createElement("option"); o.value=i; o.textContent=p.name; alertPoolSel.appendChild(o); });
+
+async function rpc(method, params) {
+  const r = await fetch(RPC, { method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({jsonrpc:"2.0",id:1,method,params}) });
+  const d = await r.json();
+  return d.result;
+}
+
+async function getReserves(addr) {
+  const hex = await rpc("eth_call", [{to:addr, data:"0x0902f1ac"},"latest"]);
+  if (!hex || hex==="0x") return null;
+  return { r0: BigInt("0x"+hex.slice(2,66)), r1: BigInt("0x"+hex.slice(66,130)) };
+}
+
+function fmt(n) {
+  if(n>=1e9) return (n/1e9).toFixed(2)+"B";
+  if(n>=1e6) return (n/1e6).toFixed(2)+"M";
+  if(n>=1e3) return (n/1e3).toFixed(2)+"K";
+  return n.toFixed(4);
+}
+
+function sparklineSVG(data, color) {
+  if(!data||data.length<2) return "";
+  const min=Math.min(...data), max=Math.max(...data), range=max-min||1;
+  const W=120,H=36;
+  const pts = data.map((v,i)=>`${(i/(data.length-1))*W},${H-((v-min)/range)*H}`).join(" ");
+  return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round"/></svg>`;
+}
+
+function renderPools() {
+  const grid = document.getElementById("poolGrid");
+  let totalR0=0, live=0;
+  grid.innerHTML = "";
+
+  poolData.forEach((pool, i) => {
+    const card = document.createElement("div");
+    card.className = "pool-card";
+
+    let badge = `<span class="badge badge-loading">LOADING</span>`;
+    let body = `<div class="skeleton"></div>`;
+
+    if (pool.r0 !== null) {
+      const r0 = Number(pool.r0)/(10**pool.d0);
+      const r1 = Number(pool.r1)/(10**pool.d1);
+      const ratio = r0>0 ? (r1/r0).toFixed(6) : "—";
+      totalR0 += r0; live++;
+      badge = `<span class="badge badge-live">LIVE</span>`;
+      body = `
+        <div class="reserves">
+          <div class="reserve-box">
+            <div class="reserve-label">RESERVE 0 (${pool.token0})</div>
+            <div class="reserve-value" style="color:var(--cyan)">${fmt(r0)}</div>
+          </div>
+          <div class="reserve-box">
+            <div class="reserve-label">RESERVE 1 (${pool.token1})</div>
+            <div class="reserve-value" style="color:var(--green)">${fmt(r1)}</div>
+          </div>
+        </div>
+        <div class="pool-footer">
+          <div class="ratio-text">RATIO: <span class="ratio-val">${ratio}</span></div>
+          ${sparklineSVG(pool.history, "var(--cyan)")}
+        </div>`;
+    } else if (pool.error) {
+      badge = `<span class="badge badge-error">NO DATA</span>`;
+      body = `<div class="empty-state" style="padding:12px 0">Unable to fetch pool data</div>`;
+    }
+
+    card.innerHTML = `
+      <div class="pool-header">
+        <div>
+          <div class="pool-name">${pool.name}</div>
+          <div class="pool-meta">${pool.stable?"🔵 STABLE":"🔴 VOLATILE"} · ${pool.address.slice(0,8)}...${pool.address.slice(-6)}</div>
+        </div>
+        ${badge}
+      </div>
+      ${body}`;
+    grid.appendChild(card);
+  });
+
+  document.getElementById("statLive").textContent = `${live} / ${POOLS.length}`;
+  document.getElementById("statTVL").textContent = fmt(totalR0) + " ETH";
+  document.getElementById("statTime").textContent = new Date().toLocaleTimeString();
+}
+
+function checkAlerts(snapshot) {
+  const now = Date.now();
+  alerts.forEach((alert,i) => {
+    const pool = snapshot[alert.poolIdx];
+    if(!pool||pool.r0===null) return;
+    const r0 = Number(pool.r0)/(10**pool.d0);
+    const r1 = Number(pool.r1)/(10**pool.d1);
+    const ratio = r0>0 ? r1/r0 : 0;
+    let fire=false, detail="";
+
+    if(alert.condition==="tvl_below"&&r0<parseFloat(alert.value)){fire=true;detail=`r0=${r0.toFixed(4)}`;}
+    if(alert.condition==="tvl_above"&&r0>parseFloat(alert.value)){fire=true;detail=`r0=${r0.toFixed(4)}`;}
+    if(alert.condition==="ratio_change_pct"){
+      const last=lastRatios[alert.poolIdx];
+      if(last){const pct=Math.abs((ratio-last)/last)*100;if(pct>=parseFloat(alert.value)){fire=true;detail=`${pct.toFixed(2)}% change`;}}
+      lastRatios[alert.poolIdx]=ratio;
+    }
+
+    const key=`${alert.id}`;
+    if(fire&&(!cooldowns[key]||now-cooldowns[key]>300000)){
+      const msg=`🚨 ${POOLS[alert.poolIdx].name}: ${CONDITIONS[alert.condition]} ${alert.value} (${detail})`;
+      triggered.push({msg, time:new Date()});
+      cooldowns[key]=now;
+      renderTriggered();
+    }
+  });
+}
+
+function renderTriggered() {
+  if(!triggered.length) return;
+  // Dashboard
+  document.getElementById("triggeredSection").style.display="block";
+  document.getElementById("triggeredList").innerHTML = triggered.slice(-5).map(t=>`
+    <div class="triggered-banner">
+      <span class="triggered-msg">${t.msg}</span>
+      <span class="triggered-time">${t.time.toLocaleTimeString()}</span>
+    </div>`).join("");
+  // History tab
+  document.getElementById("triggeredHistorySection").style.display="block";
+  document.getElementById("triggeredHistory").innerHTML = triggered.map(t=>`
+    <div style="font-size:11px;color:#ff9090;padding:8px 0;border-bottom:1px solid #0d1f30;display:flex;justify-content:space-between">
+      <span>${t.msg}</span><span style="color:var(--muted)">${t.time.toLocaleTimeString()}</span>
+    </div>`).join("");
+}
+
+function renderAlertList() {
+  const el = document.getElementById("alertList");
+  if(!alerts.length){el.innerHTML='<div class="empty-state">No alerts configured.</div>';return;}
+  el.innerHTML = alerts.map(a=>`
+    <div class="alert-item">
+      <div>
+        <div class="alert-item-text">${POOLS[a.poolIdx].name} · ${CONDITIONS[a.condition]} <span style="color:var(--amber)">${a.value}</span></div>
+        ${a.telegram?`<div class="alert-item-sub">Notify: ${a.telegram}</div>`:""}
+      </div>
+      <button class="btn-remove" onclick="removeAlert(${a.id})">REMOVE</button>
+    </div>`).join("");
+}
+
+function addAlert() {
+  const poolIdx = parseInt(document.getElementById("alertPool").value);
+  const condition = document.getElementById("alertCondition").value;
+  const value = document.getElementById("alertValue").value;
+  const telegram = document.getElementById("alertTelegram").value;
+  if(!value) return;
+  alerts.push({id:Date.now(), poolIdx, condition, value, telegram});
+  document.getElementById("alertValue").value="";
+  document.getElementById("alertTelegram").value="";
+  renderAlertList();
+}
+
+function removeAlert(id) {
+  alerts = alerts.filter(a=>a.id!==id);
+  renderAlertList();
+}
+
+async function loadAll() {
+  const btn = document.getElementById("refreshBtn");
+  btn.disabled=true; btn.textContent="SYNCING...";
+
+  // Render skeleton
+  poolData = poolData.map(p=>({...p, r0:null, r1:null, error:false}));
+  renderPools();
+
+  try {
+    const blockHex = await rpc("eth_blockNumber",[]);
+    const block = parseInt(blockHex,16);
+    document.getElementById("blockNum").textContent = `BLOCK #${block.toLocaleString()}`;
+    document.getElementById("blockBadge").style.display="flex";
+
+    await Promise.all(poolData.map(async (pool,i)=>{
+      try {
+        const res = await getReserves(pool.address);
+        if(res){
+          poolData[i].r0 = res.r0;
+          poolData[i].r1 = res.r1;
+          const r0n = Number(res.r0)/(10**pool.d0);
+          poolData[i].history = [...(poolData[i].history.slice(-19)), r0n];
+        } else { poolData[i].error=true; }
+      } catch { poolData[i].error=true; }
+    }));
+
+    checkAlerts(poolData);
+    renderPools();
+  } catch(e) { console.error(e); }
+
+  btn.disabled=false; btn.textContent="↻ REFRESH";
+}
+
+function switchTab(name, el) {
+  document.querySelectorAll(".tab-btn").forEach(b=>b.classList.remove("active"));
+  el.classList.add("active");
+  document.getElementById("tab-dashboard").style.display = name==="dashboard"?"block":"none";
+  document.getElementById("tab-alerts").style.display = name==="alerts"?"block":"none";
+}
+
+// Init
+loadAll();
+setInterval(loadAll, 15000);
+</script>
+</body>
+</html>
