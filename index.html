@@ -300,9 +300,29 @@ async function rpc(method, params) {
 }
 
 async function getReserves(addr) {
-  const hex = await rpc("eth_call", [{to:addr, data:"0x0902f1ac"},"latest"]);
-  if (!hex || hex==="0x") return null;
-  return { r0: BigInt("0x"+hex.slice(2,66)), r1: BigInt("0x"+hex.slice(66,130)) };
+  // Try basic AMM getReserves() first
+  try {
+    const hex = await rpc("eth_call", [{to:addr, data:"0x0902f1ac"},"latest"]);
+    if (hex && hex !== "0x" && hex.length >= 130) {
+      const r0 = BigInt("0x"+hex.slice(2,66));
+      const r1 = BigInt("0x"+hex.slice(66,130));
+      if (r0 > 0n || r1 > 0n) return { r0, r1 };
+    }
+  } catch(e) {}
+  // Fallback: CL pool — read token0/token1 then balanceOf(pool)
+  try {
+    const t0hex = await rpc("eth_call", [{to:addr, data:"0x0dfe1681"},"latest"]);
+    const t1hex = await rpc("eth_call", [{to:addr, data:"0xd21220a7"},"latest"]);
+    if (!t0hex || t0hex==="0x" || !t1hex || t1hex==="0x") return null;
+    const t0 = "0x" + t0hex.slice(26);
+    const t1 = "0x" + t1hex.slice(26);
+    const padAddr = addr.slice(2).toLowerCase().padStart(64,"0");
+    const b0hex = await rpc("eth_call", [{to:t0, data:"0x70a08231"+padAddr},"latest"]);
+    const b1hex = await rpc("eth_call", [{to:t1, data:"0x70a08231"+padAddr},"latest"]);
+    if (!b0hex || b0hex==="0x" || !b1hex || b1hex==="0x") return null;
+    return { r0: BigInt(b0hex), r1: BigInt(b1hex) };
+  } catch(e) {}
+  return null;
 }
 
 function fmt(n) {
