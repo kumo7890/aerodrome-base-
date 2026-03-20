@@ -30,6 +30,7 @@
       min-height: 100vh;
     }
 
+    /* HEADER */
     header {
       background: linear-gradient(135deg, #0a0f1a, #0d1b2a, #091520);
       border-bottom: 1px solid var(--border);
@@ -62,6 +63,7 @@
     .refresh-btn:hover { border-color: var(--cyan); background: rgba(0,212,255,0.05); }
     .refresh-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
+    /* TABS */
     nav { border-bottom: 1px solid #0d1f30; padding: 0 24px; }
     .nav-inner { max-width: 1200px; margin: 0 auto; display: flex; }
     .tab-btn {
@@ -73,8 +75,10 @@
     }
     .tab-btn.active { color: var(--cyan); border-bottom-color: var(--cyan); }
 
+    /* MAIN */
     main { max-width: 1200px; margin: 0 auto; padding: 24px; }
 
+    /* STATS ROW */
     .stats-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; margin-bottom: 24px; }
     .stat-card {
       background: linear-gradient(135deg, var(--surface), var(--surface2));
@@ -83,6 +87,7 @@
     .stat-label { font-size: 10px; color: var(--muted); letter-spacing: 2px; margin-bottom: 8px; }
     .stat-value { font-size: 24px; font-weight: 700; }
 
+    /* POOL GRID */
     .pool-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px,1fr)); gap: 16px; }
     .pool-card {
       background: linear-gradient(135deg, var(--surface), var(--surface2));
@@ -92,14 +97,82 @@
     .pool-card:hover { border-color: var(--cyan); }
     .pool-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
     .pool-name { font-size: 14px; font-weight: 700; letter-spacing: 1px; }
-    .whale-alert { background: rgba(255,80,80,0.15); border: 1px solid var(--red); color: var(--red); padding: 6px 12px; border-radius: 4px; font-size: 11px; margin-top: 8px; text-align: center; }
+    .pool-meta { font-size: 10px; color: var(--muted); margin-top: 4px; }
+    .badge {
+      padding: 3px 8px; border-radius: 4px; font-size: 10px; letter-spacing: 1px;
+      white-space: nowrap;
+    }
+    .badge-live { background: rgba(0,255,136,0.1); color: var(--green); border: 1px solid rgba(0,255,136,0.3); }
+    .badge-loading { background: #1a2233; color: var(--muted); border: 1px solid var(--border); }
+    .badge-error { background: rgba(255,80,80,0.1); color: var(--red); border: 1px solid rgba(255,80,80,0.3); }
 
-    .empty-state { color: var(--muted); text-align: center; padding: 48px 0; font-size: 14px; }
+    .reserves { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+    .reserve-box { background: #060d14; border-radius: 6px; padding: 12px; }
+    .reserve-label { font-size: 9px; color: var(--muted); letter-spacing: 1px; margin-bottom: 4px; }
+    .reserve-value { font-size: 13px; font-weight: 700; }
 
-    .alert-item { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 12px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; font-size: 12px; }
-    .btn-remove { background: rgba(255,80,80,0.1); border: 1px solid rgba(255,80,80,0.3); color: var(--red); padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; }
+    .pool-footer { display: flex; justify-content: space-between; align-items: center; }
+    .ratio-text { font-size: 10px; color: var(--muted); }
+    .ratio-val { color: var(--amber); }
 
-    .triggered-banner { background: rgba(255,80,80,0.2); border-left: 4px solid var(--red); padding: 12px; margin: 8px 0; border-radius: 4px; font-size: 13px; }
+    canvas.sparkline { display: block; }
+
+    .skeleton { height: 60px; background: var(--surface2); border-radius: 4px; animation: shimmer 1.5s infinite; }
+    @keyframes shimmer { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+    /* ALERTS TAB */
+    .alerts-wrap { max-width: 640px; }
+    .section-label { font-size: 11px; color: var(--muted); letter-spacing: 2px; margin-bottom: 20px; }
+    .alert-form {
+      background: linear-gradient(135deg, var(--surface), var(--surface2));
+      border: 1px solid var(--border); border-radius: 8px; padding: 24px; margin-bottom: 24px;
+    }
+    .form-title { font-size: 12px; color: var(--cyan); letter-spacing: 2px; margin-bottom: 20px; }
+    .form-group { margin-bottom: 14px; }
+    .form-label { font-size: 10px; color: var(--muted); letter-spacing: 1px; display: block; margin-bottom: 6px; }
+    .form-control {
+      width: 100%; background: #060d14; border: 1px solid var(--border);
+      color: var(--text); padding: 10px 12px; border-radius: 4px;
+      font-family: inherit; font-size: 12px;
+    }
+    .form-control:focus { outline: none; border-color: var(--cyan); }
+    .btn-primary {
+      width: 100%; background: linear-gradient(135deg, #004d80, #0066aa);
+      border: none; color: #fff; padding: 12px; border-radius: 4px;
+      cursor: pointer; font-family: inherit; font-size: 11px;
+      letter-spacing: 2px; font-weight: 700;
+    }
+    .btn-primary:hover { background: linear-gradient(135deg, #005c99, #0077cc); }
+
+    .alert-item {
+      background: linear-gradient(135deg, var(--surface), var(--surface2));
+      border: 1px solid var(--border); border-radius: 6px;
+      padding: 14px 16px; margin-bottom: 8px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .alert-item-text { font-size: 12px; }
+    .alert-item-sub { font-size: 10px; color: var(--muted); margin-top: 4px; }
+    .btn-remove {
+      background: rgba(255,80,80,0.1); border: 1px solid rgba(255,80,80,0.3);
+      color: var(--red); padding: 4px 10px; border-radius: 4px;
+      cursor: pointer; font-family: inherit; font-size: 11px; white-space: nowrap;
+    }
+
+    .triggered-banner {
+      background: rgba(255,80,80,0.08); border: 1px solid rgba(255,80,80,0.3);
+      border-radius: 6px; padding: 10px 16px; margin-bottom: 8px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .triggered-msg { font-size: 13px; color: #ff9090; }
+    .triggered-time { font-size: 10px; color: var(--muted); }
+
+    .empty-state { color: var(--muted); font-size: 12px; text-align: center; padding: 32px 0; }
+
+    @media (max-width: 600px) {
+      .stats-row { grid-template-columns: 1fr; }
+      .pool-grid { grid-template-columns: 1fr; }
+      .header-inner { flex-wrap: wrap; height: auto; padding: 12px 0; gap: 12px; }
+    }
   </style>
 </head>
 <body>
@@ -109,13 +182,13 @@
     <div class="logo">
       <div class="logo-icon">A</div>
       <div>
-        <div class="logo-title">AERODROME BASE</div>
-        <div class="logo-sub">ON-CHAIN ANALYTICS</div>
+        <div class="logo-title">AERODROME</div>
+        <div class="logo-sub">BASE CHAIN ANALYTICS</div>
       </div>
     </div>
     <div class="header-right">
-      <div class="block-badge" id="blockBadge" style="display:none;">
-        <span>●</span> BLOCK <span id="blockNum"></span>
+      <div class="block-badge" id="blockBadge" style="display:none">
+        <span>●</span><span id="blockNum">—</span>
       </div>
       <button class="refresh-btn" id="refreshBtn" onclick="loadAll()">↻ REFRESH</button>
     </div>
@@ -124,173 +197,343 @@
 
 <nav>
   <div class="nav-inner">
-    <button class="tab-btn active" onclick="switchTab('dashboard', this)">DASHBOARD</button>
-    <button class="tab-btn" onclick="switchTab('alerts', this)">ALERTS</button>
+    <button class="tab-btn active" onclick="switchTab('dashboard', this)">Dashboard</button>
+    <button class="tab-btn" onclick="switchTab('alerts', this)">Alerts</button>
   </div>
 </nav>
 
 <main>
+  <!-- DASHBOARD TAB -->
   <div id="tab-dashboard">
     <div class="stats-row">
       <div class="stat-card">
         <div class="stat-label">POOLS LIVE</div>
-        <div class="stat-value" id="poolsLive">—</div>
+        <div class="stat-value" id="statLive" style="color:var(--green)">—</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">TOTAL TVL (USD)</div>
-        <div class="stat-value" id="totalTVL">—</div>
+        <div class="stat-label">TOTAL RESERVE0 (ETH equiv)</div>
+        <div class="stat-value" id="statTVL" style="color:var(--cyan)">—</div>
       </div>
       <div class="stat-card">
         <div class="stat-label">LAST UPDATED</div>
-        <div class="stat-value" id="lastUpdated">—</div>
+        <div class="stat-value" id="statTime" style="color:var(--amber); font-size:16px">—</div>
       </div>
     </div>
 
     <div class="pool-grid" id="poolGrid"></div>
+
+    <div id="triggeredSection" style="margin-top:24px; display:none">
+      <div style="font-size:11px; color:var(--red); letter-spacing:2px; margin-bottom:12px">⚠ TRIGGERED ALERTS</div>
+      <div id="triggeredList"></div>
+    </div>
   </div>
 
-  <div id="tab-alerts" style="display:none;">
-    <h2 style="font-size:16px;margin-bottom:16px;">Configure Alerts</h2>
-    <div style="display:grid;gap:12px;max-width:500px;">
-      <select id="alertPool">
-        <!-- populated dynamically -->
-      </select>
-      <select id="alertCondition">
-        <option value="0">TVL drops below</option>
-        <option value="1">TVL rises above</option>
-        <option value="2">Reserve change > % (whale-like)</option>
-      </select>
-      <input type="number" id="alertValue" placeholder="Threshold (e.g. 1000000 or 10 for %)" step="any">
-      <input type="text" id="alertTelegram" placeholder="@telegram (for future notify)">
-      <button onclick="addAlert()" style="background:var(--cyan);color:#000;padding:12px;border:none;border-radius:4px;cursor:pointer;font-weight:bold;">+ ADD ALERT</button>
-    </div>
+  <!-- ALERTS TAB -->
+  <div id="tab-alerts" style="display:none">
+    <div class="alerts-wrap">
+      <div class="section-label">CONFIGURE POOL ALERTS · Checks every 15s</div>
 
-    <div id="alertList" style="margin-top:32px;"></div>
-    <div id="triggeredSection" style="margin-top:32px;display:none;">
-      <h3 style="color:var(--red);">TRIGGERED ALERTS</h3>
-      <div id="triggeredList"></div>
+      <div class="alert-form">
+        <div class="form-title">+ NEW ALERT</div>
+        <div class="form-group">
+          <label class="form-label">POOL</label>
+          <select class="form-control" id="alertPool"></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">CONDITION</label>
+          <select class="form-control" id="alertCondition">
+            <option value="tvl_below">TVL drops below</option>
+            <option value="tvl_above">TVL rises above</option>
+            <option value="ratio_change_pct">Price ratio changes by %</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">THRESHOLD VALUE</label>
+          <input class="form-control" type="number" id="alertValue" placeholder="e.g. 100" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">TELEGRAM USERNAME (for reference)</label>
+          <input class="form-control" type="text" id="alertTelegram" placeholder="@yourusername" />
+        </div>
+        <button class="btn-primary" onclick="addAlert()">+ CREATE ALERT</button>
+      </div>
+
+      <div id="alertListSection">
+        <div class="section-label">ACTIVE ALERTS</div>
+        <div id="alertList"><div class="empty-state">No alerts configured.</div></div>
+      </div>
+
+      <div id="triggeredHistorySection" style="margin-top:24px; display:none">
+        <div class="section-label" style="color:var(--red)">ALERT HISTORY</div>
+        <div id="triggeredHistory"></div>
+      </div>
     </div>
   </div>
 </main>
 
 <script>
-const RPC_URLS = [
-  "https://mainnet.base.org",
-  "https://rpc.ankr.com/base",
-  "https://base.llamarpc.com",
-  "https://base-mainnet.public.blastapi.io"
-];
+const RPC = "https://base-mainnet.public.blastapi.io";
+
+// Use DeFiLlama's free API for CL pool TVL data
+const LLAMA_BASE = "https://coins.llama.fi";
 
 const POOLS = [
-  { address: "0xcDAC0d6c6C59727a65F871236188350531885C43", name: "WETH/USDC",   token0: "WETH", token1: "USDC",   d0:18, d1:6  },
-  { address: "0x7c2eA10D3e5922ba3bBBafa39Dc0f59b3C1F2cC", name: "WETH/cbETH",  token0: "WETH", token1: "cbETH",  d0:18, d1:18 },
-  { address: "0xB4885Bc63399BF5518b994c1545d85688b7f710a", name: "USDC/USDbC", token0: "USDC", token1: "USDbC", d0:6,  d1:6  },
-  { address: "0x6cDcb1C4A4D1C3C6d054b27AC5B77e89eAFb971b", name: "AERO/WETH",  token0: "AERO", token1: "WETH",   d0:18, d1:18 },
-  { address: "0x2578365B3dfFa79b79cA3E09f5A6c05A19bfE46", name: "USDC/DAI",    token0: "USDC", token1: "DAI",    d0:6,  d1:18 },
+  { address:"0x70acdf2ad0bf2402c957154f944c19ef4e1cbae1", name:"WETH/cbBTC",  token0:"WETH",  token1:"cbBTC", stable:false, d0:18, d1:8  },
+  { address:"0x6cdcb1c4a4d1c3c6d054b27ac5b77e89eafb971d", name:"USDC/AERO",  token0:"USDC",  token1:"AERO",  stable:false, d0:6,  d1:18 },
+  { address:"0x74f72788f4814d7ff3c49b44684aa98eee140c0e", name:"WETH/msETH", token0:"WETH",  token1:"msETH", stable:false, d0:18, d1:18 },
+  { address:"0xb2cc224c1c9fee385f8ad6a55b4d94e92359dc59", name:"WETH/USDC",  token0:"WETH",  token1:"USDC",  stable:false, d0:18, d1:6  },
+  { address:"0x7501bc8bb51616f79bfa524e464fb7b41f0b10fb", name:"msUSD/USDC", token0:"msUSD", token1:"USDC",  stable:true,  d0:18, d1:6  },
 ];
 
-const poolData = POOLS.map(p => ({...p, r0:null, r1:null, tvlUSD:0, history:[], lastR0:0, lastR1:0, error:false}));
+// Known token addresses on Base
+const TOKEN_ADDRS = {
+  WETH:  "0x4200000000000000000000000000000000000006",
+  USDC:  "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+  AERO:  "0x940181a94A35A4569E4529A3CDfB74e38FD98631",
+  cbBTC: "0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf",
+  msETH: "0x7Ba6F01772924a82D9626c126347A28299E98c98",
+  msUSD: "0x526728DBc96689597F85ae4cd716d4f7fCcBAE9d",
+};
 
+const CONDITIONS = { tvl_below:"TVL drops below", tvl_above:"TVL rises above", ratio_change_pct:"Ratio changes by %" };
+
+let poolData = POOLS.map(p => ({...p, r0:null, r1:null, history:[]}));
 let alerts = [];
 let triggered = [];
+let lastRatios = {};
 let cooldowns = {};
-let prices = { ethereum: { usd: 0 }, "usd-coin": { usd: 1 }, "aerodrome-finance": { usd: 0 }, "coinbase-wrapped-staked-eth": { usd: 0 }, dai: { usd: 1 } };
+
+const alertPoolSel = document.getElementById("alertPool");
+POOLS.forEach((p,i) => { const o = document.createElement("option"); o.value=i; o.textContent=p.name; alertPoolSel.appendChild(o); });
 
 async function rpc(method, params) {
-  for (const url of RPC_URLS) {
-    try {
-      const r = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params })
-      });
-      const d = await r.json();
-      if (d.result) return d.result;
-    } catch {}
-  }
-  return null;
+  const r = await fetch(RPC, { method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({jsonrpc:"2.0",id:1,method,params}) });
+  const d = await r.json();
+  return d.result;
 }
 
-async function getPrices() {
+// Get token balances held by a pool using multicall-style approach
+async function getPoolBalances(poolAddr, tok0sym, tok1sym) {
+  const tok0 = TOKEN_ADDRS[tok0sym];
+  const tok1 = TOKEN_ADDRS[tok1sym];
+  if (!tok0 || !tok1) return null;
+
+  const pad = "000000000000000000000000" + poolAddr.slice(2).toLowerCase();
+  const sel = "0x70a08231"; // balanceOf selector
+
   try {
-    const res = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=ethereum,usd-coin,aerodrome-finance,coinbase-wrapped-staked-eth,dai&vs_currencies=usd");
-    prices = await res.json();
-  } catch {}
+    const [b0, b1] = await Promise.all([
+      rpc("eth_call", [{to: tok0, data: sel + pad}, "latest"]),
+      rpc("eth_call", [{to: tok1, data: sel + pad}, "latest"]),
+    ]);
+    if (!b0 || b0 === "0x" || !b1 || b1 === "0x") return null;
+    const r0 = BigInt(b0);
+    const r1 = BigInt(b1);
+    if (r0 === 0n && r1 === 0n) return null;
+    return { r0, r1 };
+  } catch(e) {
+    console.error("balanceOf failed:", poolAddr, e);
+    return null;
+  }
 }
 
 async function getReserves(pool) {
-  const data = await rpc("eth_call", [{ to: pool.address, data: "0x0902f1ac" }, "latest"]);
-  if (!data || data === "0x") return null;
-  const r0 = BigInt("0x" + data.slice(2, 66));
-  const r1 = BigInt("0x" + data.slice(66, 130));
-  return { r0, r1 };
+  // Method 1: Basic AMM getReserves()
+  try {
+    const hex = await rpc("eth_call", [{to: pool.address, data: "0x0902f1ac"}, "latest"]);
+    if (hex && hex !== "0x" && hex.length >= 130) {
+      const r0 = BigInt("0x" + hex.slice(2, 66));
+      const r1 = BigInt("0x" + hex.slice(66, 130));
+      if (r0 > 0n || r1 > 0n) return { r0, r1 };
+    }
+  } catch(e) {}
+
+  // Method 2: Read token balances directly from token contracts
+  return await getPoolBalances(pool.address, pool.token0, pool.token1);
 }
 
-function formatNum(n) {
-  if (!n) return "—";
-  if (n >= 1e9) return "$" + (n/1e9).toFixed(2) + "B";
-  if (n >= 1e6) return "$" + (n/1e6).toFixed(2) + "M";
-  return "$" + n.toLocaleString(undefined, {maximumFractionDigits:0});
+function fmt(n) {
+  if(n>=1e9) return (n/1e9).toFixed(2)+"B";
+  if(n>=1e6) return (n/1e6).toFixed(2)+"M";
+  if(n>=1e3) return (n/1e3).toFixed(2)+"K";
+  return n.toFixed(4);
+}
+
+function sparklineSVG(data, color) {
+  if(!data||data.length<2) return "";
+  const min=Math.min(...data), max=Math.max(...data), range=max-min||1;
+  const W=120,H=36;
+  const pts = data.map((v,i)=>`${(i/(data.length-1))*W},${H-((v-min)/range)*H}`).join(" ");
+  return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round"/></svg>`;
 }
 
 function renderPools() {
-  const live = poolData.filter(p => !p.error && p.r0 !== null).length;
-  document.getElementById("poolsLive").textContent = `${live} / ${poolData.length}`;
-  
-  const totalTVL = poolData.reduce((sum, p) => sum + p.tvlUSD, 0);
-  document.getElementById("totalTVL").textContent = formatNum(totalTVL);
-
-  document.getElementById("lastUpdated").textContent = new Date().toLocaleTimeString();
-
   const grid = document.getElementById("poolGrid");
-  grid.innerHTML = poolData.map((pool, i) => {
-    const r0n = pool.r0 ? Number(pool.r0) / 10**pool.d0 : 0;
-    const r1n = pool.r1 ? Number(pool.r1) / 10**pool.d1 : 0;
-    const p0 = pool.token0 === "WETH" ? prices.ethereum?.usd : (pool.token0 === "AERO" ? prices["aerodrome-finance"]?.usd : 1);
-    const p1 = pool.token1 === "WETH" ? prices.ethereum?.usd : (pool.token1 === "AERO" ? prices["aerodrome-finance"]?.usd : 1);
-    const tvl = r0n * p0 + r1n * p1;
-    pool.tvlUSD = tvl;
+  let totalR0=0, live=0;
+  grid.innerHTML = "";
 
-    const whaleDetected = (pool.lastR0 && Math.abs(r0n - pool.lastR0)/pool.lastR0 > 0.10) ||
-                          (pool.lastR1 && Math.abs(r1n - pool.lastR1)/pool.lastR1 > 0.10);
-    if (whaleDetected) {
-      const msg = `WHALE ALERT: ${pool.name} reserve change >10%`;
-      triggered.push({msg, time: new Date()});
-      renderTriggered();
-    }
-    pool.lastR0 = r0n;
-    pool.lastR1 = r1n;
+  poolData.forEach((pool, i) => {
+    const card = document.createElement("div");
+    card.className = "pool-card";
 
-    return `
-      <div class="pool-card">
-        <div class="pool-header">
-          <div class="pool-name">${pool.name}</div>
-          <div style="color:\( {pool.error ? 'var(--red)' : 'var(--green)'};"> \){pool.error ? 'ERROR' : 'LIVE'}</div>
+    let badge = `<span class="badge badge-loading">LOADING</span>`;
+    let body = `<div class="skeleton"></div>`;
+
+    if (pool.r0 !== null) {
+      const r0 = Number(pool.r0)/(10**pool.d0);
+      const r1 = Number(pool.r1)/(10**pool.d1);
+      const ratio = r0>0 ? (r1/r0).toFixed(6) : "—";
+      totalR0 += r0; live++;
+      badge = `<span class="badge badge-live">LIVE</span>`;
+      body = `
+        <div class="reserves">
+          <div class="reserve-box">
+            <div class="reserve-label">RESERVE 0 (${pool.token0})</div>
+            <div class="reserve-value" style="color:var(--cyan)">${fmt(r0)}</div>
+          </div>
+          <div class="reserve-box">
+            <div class="reserve-label">RESERVE 1 (${pool.token1})</div>
+            <div class="reserve-value" style="color:var(--green)">${fmt(r1)}</div>
+          </div>
         </div>
-        <div>Reserve0: ${r0n.toLocaleString(undefined,{maximumFractionDigits:0})} ${pool.token0}</div>
-        <div>Reserve1: ${r1n.toLocaleString(undefined,{maximumFractionDigits:0})} ${pool.token1}</div>
-        <div>TVL: ${formatNum(tvl)}</div>
-        ${whaleDetected ? '<div class="whale-alert">WHALE MOVEMENT DETECTED</div>' : ''}
-        <div style="margin-top:12px;">${Sparkline(pool.history)}</div>
-      </div>`;
-  }).join("");
+        <div class="pool-footer">
+          <div class="ratio-text">RATIO: <span class="ratio-val">${ratio}</span></div>
+          ${sparklineSVG(pool.history, "var(--cyan)")}
+        </div>`;
+    } else if (pool.error) {
+      badge = `<span class="badge badge-error">NO DATA</span>`;
+      body = `<div class="empty-state" style="padding:12px 0">Unable to fetch pool data</div>`;
+    }
+
+    card.innerHTML = `
+      <div class="pool-header">
+        <div>
+          <div class="pool-name">${pool.name}</div>
+          <div class="pool-meta">${pool.stable?"🔵 STABLE":"🔴 VOLATILE"} · ${pool.address.slice(0,8)}...${pool.address.slice(-6)}</div>
+        </div>
+        ${badge}
+      </div>
+      ${body}`;
+    grid.appendChild(card);
+  });
+
+  document.getElementById("statLive").textContent = `${live} / ${POOLS.length}`;
+  document.getElementById("statTVL").textContent = fmt(totalR0) + " ETH";
+  document.getElementById("statTime").textContent = new Date().toLocaleTimeString();
 }
 
-function Sparkline({history}) {
-  if (history.length < 2) return "";
-  const min = Math.min(...history), max = Math.max(...history), range = max-min||1;
-  const w=180, h=40;
-  const pts = history.map((v,i) => `\( {(i/(history.length-1))*w}, \){h - ((v-min)/range)*h}`).join(" ");
-  return `<svg width="\( {w}" height=" \){h}" viewBox="0 0 ${w} \( {h}"><polyline points=" \){pts}" fill="none" stroke="var(--cyan)" stroke-width="2"/></svg>`;
+function checkAlerts(snapshot) {
+  const now = Date.now();
+  alerts.forEach((alert,i) => {
+    const pool = snapshot[alert.poolIdx];
+    if(!pool||pool.r0===null) return;
+    const r0 = Number(pool.r0)/(10**pool.d0);
+    const r1 = Number(pool.r1)/(10**pool.d1);
+    const ratio = r0>0 ? r1/r0 : 0;
+    let fire=false, detail="";
+    if(alert.condition==="tvl_below"&&r0<parseFloat(alert.value)){fire=true;detail=`r0=${r0.toFixed(4)}`;}
+    if(alert.condition==="tvl_above"&&r0>parseFloat(alert.value)){fire=true;detail=`r0=${r0.toFixed(4)}`;}
+    if(alert.condition==="ratio_change_pct"){
+      const last=lastRatios[alert.poolIdx];
+      if(last){const pct=Math.abs((ratio-last)/last)*100;if(pct>=parseFloat(alert.value)){fire=true;detail=`${pct.toFixed(2)}% change`;}}
+      lastRatios[alert.poolIdx]=ratio;
+    }
+    const key=`${alert.id}`;
+    if(fire&&(!cooldowns[key]||now-cooldowns[key]>300000)){
+      const msg=`🚨 ${POOLS[alert.poolIdx].name}: ${CONDITIONS[alert.condition]} ${alert.value} (${detail})`;
+      triggered.push({msg, time:new Date()});
+      cooldowns[key]=now;
+      renderTriggered();
+    }
+  });
 }
 
 function renderTriggered() {
-  if (!triggered.length) return;
-  document.getElementById("triggeredSection").style.display = "block";
-  document.getElementById("triggeredList").innerHTML = triggered.slice(-5).map(t => `
-    <div class="triggered-banner">\( {t.msg} <small> \){t.time.toLocaleTimeString()}</small></div>
-  `).join("");
+  if(!triggered.length) return;
+  document.getElementById("triggeredSection").style.display="block";
+  document.getElementById("triggeredList").innerHTML = triggered.slice(-5).map(t=>`
+    <div class="triggered-banner">
+      <span class="triggered-msg">${t.msg}</span>
+      <span class="triggered-time">${t.time.toLocaleTimeString()}</span>
+    </div>`).join("");
+  document.getElementById("triggeredHistorySection").style.display="block";
+  document.getElementById("triggeredHistory").innerHTML = triggered.map(t=>`
+    <div style="font-size:11px;color:#ff9090;padding:8px 0;border-bottom:1px solid #0d1f30;display:flex;justify-content:space-between">
+      <span>${t.msg}</span><span style="color:var(--muted)">${t.time.toLocaleTimeString()}</span>
+    </div>`).join("");
 }
 
 function renderAlertList() {
-  const el = document.getElementBy
+  const el = document.getElementById("alertList");
+  if(!alerts.length){el.innerHTML='<div class="empty-state">No alerts configured.</div>';return;}
+  el.innerHTML = alerts.map(a=>`
+    <div class="alert-item">
+      <div>
+        <div class="alert-item-text">${POOLS[a.poolIdx].name} · ${CONDITIONS[a.condition]} <span style="color:var(--amber)">${a.value}</span></div>
+        ${a.telegram?`<div class="alert-item-sub">Notify: ${a.telegram}</div>`:""}
+      </div>
+      <button class="btn-remove" onclick="removeAlert(${a.id})">REMOVE</button>
+    </div>`).join("");
+}
+
+function addAlert() {
+  const poolIdx = parseInt(document.getElementById("alertPool").value);
+  const condition = document.getElementById("alertCondition").value;
+  const value = document.getElementById("alertValue").value;
+  const telegram = document.getElementById("alertTelegram").value;
+  if(!value) return;
+  alerts.push({id:Date.now(), poolIdx, condition, value, telegram});
+  document.getElementById("alertValue").value="";
+  document.getElementById("alertTelegram").value="";
+  renderAlertList();
+}
+
+function removeAlert(id) {
+  alerts = alerts.filter(a=>a.id!==id);
+  renderAlertList();
+}
+
+async function loadAll() {
+  const btn = document.getElementById("refreshBtn");
+  btn.disabled=true; btn.textContent="SYNCING...";
+  poolData = poolData.map(p=>({...p, r0:null, r1:null, error:false}));
+  renderPools();
+
+  try {
+    const blockHex = await rpc("eth_blockNumber",[]);
+    const block = parseInt(blockHex,16);
+    document.getElementById("blockNum").textContent = `BLOCK #${block.toLocaleString()}`;
+    document.getElementById("blockBadge").style.display="flex";
+
+    await Promise.all(poolData.map(async (pool,i)=>{
+      try {
+        const res = await getReserves(pool);
+        if(res){
+          poolData[i].r0 = res.r0;
+          poolData[i].r1 = res.r1;
+          const r0n = Number(res.r0)/(10**pool.d0);
+          poolData[i].history = [...(poolData[i].history.slice(-19)), r0n];
+        } else { poolData[i].error=true; }
+      } catch { poolData[i].error=true; }
+    }));
+
+    checkAlerts(poolData);
+    renderPools();
+  } catch(e) { console.error(e); }
+
+  btn.disabled=false; btn.textContent="↻ REFRESH";
+}
+
+function switchTab(name, el) {
+  document.querySelectorAll(".tab-btn").forEach(b=>b.classList.remove("active"));
+  el.classList.add("active");
+  document.getElementById("tab-dashboard").style.display = name==="dashboard"?"block":"none";
+  document.getElementById("tab-alerts").style.display = name==="alerts"?"block":"none";
+}
+
+loadAll();
+setInterval(loadAll, 15000);
+</script>
+</body>
+</html>
