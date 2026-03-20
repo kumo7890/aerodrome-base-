@@ -311,9 +311,6 @@ async function rpc(method, params) {
 }
 
 async function getReserves(addr, t0addr, t1addr) {
-  const padAddr = "000000000000000000000000" + addr.slice(2).toLowerCase();
-  const balSel = "0x70a08231";
-
   // Method 1: Basic AMM — getReserves()
   try {
     const hex = await rpc("eth_call", [{to:addr, data:"0x0902f1ac"},"latest"]);
@@ -324,29 +321,38 @@ async function getReserves(addr, t0addr, t1addr) {
     }
   } catch(e) {}
 
-  // Method 2: CL pool — call balance0()/balance1() directly on pool
-  // balance0() = 0x4d4c8b6d, balance1() = 0x6a627842  
+  // Method 2: CL pool — read token0/token1 from pool, then balanceOf(pool)
   try {
-    const b0hex = await rpc("eth_call", [{to:addr, data:"0x4d4c8b6d"},"latest"]);
-    const b1hex = await rpc("eth_call", [{to:addr, data:"0x6a627842"},"latest"]);
-    if (b0hex && b0hex !== "0x" && b1hex && b1hex !== "0x") {
-      const r0 = BigInt(b0hex);
-      const r1 = BigInt(b1hex);
-      if (r0 > 0n || r1 > 0n) return { r0, r1 };
-    }
-  } catch(e) {}
-
-  // Method 3: Use known token addresses balanceOf(pool)
-  if (t0addr && t1addr) {
-    try {
-      const b0hex = await rpc("eth_call", [{to:t0addr, data:balSel+padAddr},"latest"]);
-      const b1hex = await rpc("eth_call", [{to:t1addr, data:balSel+padAddr},"latest"]);
-      if (b0hex && b0hex !== "0x" && b1hex && b1hex !== "0x") {
-        const r0 = BigInt(b0hex);
-        const r1 = BigInt(b1hex);
+    const t0res = await rpc("eth_call", [{to:addr, data:"0x0dfe1681"},"latest"]);
+    const t1res = await rpc("eth_call", [{to:addr, data:"0xd21220a7"},"latest"]);
+    if (t0res && t0res.length >= 66 && t1res && t1res.length >= 66) {
+      // extract address from ABI-encoded result (last 20 bytes = 40 hex chars)
+      const tok0 = "0x" + t0res.slice(-40);
+      const tok1 = "0x" + t1res.slice(-40);
+      // build balanceOf(addr) calldata: selector + 12 zero bytes + 20 byte address
+      const param = "000000000000000000000000" + addr.slice(2).toLowerCase();
+      const bal0 = await rpc("eth_call", [{to:tok0, data:"0x70a08231"+param},"latest"]);
+      const bal1 = await rpc("eth_call", [{to:tok1, data:"0x70a08231"+param},"latest"]);
+      if (bal0 && bal0 !== "0x" && bal1 && bal1 !== "0x") {
+        const r0 = BigInt(bal0);
+        const r1 = BigInt(bal1);
         if (r0 > 0n || r1 > 0n) return { r0, r1 };
       }
-    } catch(e) {}
+    }
+  } catch(e) { console.error("CL method2 error", e); }
+
+  // Method 3: Fallback — use hardcoded token addresses
+  if (t0addr && t1addr) {
+    try {
+      const param = "000000000000000000000000" + addr.slice(2).toLowerCase();
+      const bal0 = await rpc("eth_call", [{to:t0addr, data:"0x70a08231"+param},"latest"]);
+      const bal1 = await rpc("eth_call", [{to:t1addr, data:"0x70a08231"+param},"latest"]);
+      if (bal0 && bal0 !== "0x" && bal1 && bal1 !== "0x") {
+        const r0 = BigInt(bal0);
+        const r1 = BigInt(bal1);
+        if (r0 > 0n || r1 > 0n) return { r0, r1 };
+      }
+    } catch(e) { console.error("CL method3 error", e); }
   }
 
   return null;
