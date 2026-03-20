@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """
-Aerodrome Base Alert Bot — BULLETPROOF FINAL VERSION
-Will NOT crash on RPC failures. Shows all 5 pools.
+Aerodrome Base Alert Bot — FINAL VERSION (uses The Graph, no RPC issues)
 """
 
 import os
@@ -12,91 +11,73 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-RPC_URLS = [
-    "https://base-mainnet.g.alchemy.com/v2/demo",
-    "https://base-rpc.publicnode.com",
-    "https://rpc.ankr.com/base",
-    "https://base.llamarpc.com",
-    "https://mainnet.base.org",
-]
-
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-CHAT = os.getenv("TELEGRAM_CHAT_ID")
+CHAT  = os.getenv("TELEGRAM_CHAT_ID")
 
-POLL_INTERVAL = 200  # 5 minutes
+GRAPH_URL = "https://gateway.thegraph.com/api/subgraphs/id/GENunSHWLBXm59mBSgPzQ8metBEp9YDfdqwFr91Av1UM"
 
 POOLS = [
-    {"address": "0xcDAC0d6c6C59727a65F871236188350531885C43", "name": "WETH/USDC",   "d0":18, "d1":6},
-    {"address": "0x7c2eA10D3e5922ba3bBBafa39Dc0f59b3C1F2cC", "name": "WETH/cbETH",  "d0":18, "d1":18},
-    {"address": "0xB4885Bc63399BF5518b994c1545d85688b7f710a", "name": "USDC/USDbC", "d0":6,  "d1":6},
-    {"address": "0x6cDcb1C4A4D1C3C6d054b27AC5B77e89eAFb971b", "name": "AERO/WETH",  "d0":18, "d1":18},
-    {"address": "0x2578365B3dfFa79b79cA3E09f5A6c05A19bfE46", "name": "USDC/DAI",    "d0":6,  "d1":18},
+    {"address": "0xcDAC0d6c6C59727a65F871236188350531885C43", "name": "WETH/USDC"},
+    {"address": "0x7c2eA10D3e5922ba3bBBafa39Dc0f59b3C1F2cC", "name": "WETH/cbETH"},
+    {"address": "0xB4885Bc63399BF5518b994c1545d85688b7f710a", "name": "USDC/USDbC"},
+    {"address": "0x6cDcb1C4A4D1C3C6d054b27AC5B77e89eAFb971b", "name": "AERO/WETH"},
+    {"address": "0x2578365B3dfFa79b79cA3E09f5A6c05A19bfE46", "name": "USDC/DAI"},
 ]
 
-PRICES = {"WETH": 2160, "cbETH": 2420, "USDC":1, "USDbC":1, "AERO":0.33, "DAI":1}
+def send_telegram(text):
+    if not TOKEN or not CHAT:
+        print(text)
+        return
+    requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage",
+                  json={"chat_id": CHAT, "text": text, "parse_mode": "HTML"})
 
-def rpc(method, params):
-    for url in RPC_URLS:
-        try:
-            r = requests.post(url, json={"jsonrpc":"2.0","id":1,"method":method,"params":params}, timeout=12)
-            if r.status_code == 200:
-                return r.json().get("result")
-        except:
-            continue
-    return None  # ← Graceful fail instead of crash
+def get_snapshot():
+    # Build GraphQL query for all 5 pools
+    addresses = '", "'.join(p["address"].lower() for p in POOLS)
+    query = f"""
+    {{
+      pairs(where: {{id_in: ["{addresses}"]}}) {{
+        id
+        name
+        reserve0
+        reserve1
+        token0 {{ symbol }}
+        token1 {{ symbol }}
+      }}
+    }}
+    """
 
-def get_reserves(addr):
-    data = rpc("eth_call", [{"to": addr, "data": "0x0902f1ac"}, "latest"])
-    if not data or data == "0x":
-        return None
-    r0 = int(data[2:66], 16)
-    r1 = int(data[66:130], 16)
-    return r0, r1
-
-def fetch_prices():
     try:
-        data = requests.get("https://api.coingecko.com/api/v3/simple/price?ids=ethereum,aerodrome-finance,coinbase-wrapped-staked-eth&vs_currencies=usd", timeout=8).json()
-        PRICES["WETH"] = data.get("ethereum", {}).get("usd", 2160)
-        PRICES["AERO"] = data.get("aerodrome-finance", {}).get("usd", 0.33)
-        PRICES["cbETH"] = data.get("coinbase-wrapped-staked-eth", {}).get("usd", 2420)
-    except:
-        pass
-
-def snapshot():
-    fetch_prices()
-    lines = ["🔵 <b>Aerodrome Base — Full Snapshot</b>", 
-             datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC"), ""]
-    
-    for p in POOLS:
-        time.sleep(3)  # prevent rate limit
-        res = get_reserves(p["address"])
-        if not res:
-            continue
-        r0 = res[0] / 10**p["d0"]
-        r1 = res[1] / 10**p["d1"]
-        tvl = r0 * PRICES.get(p["name"].split("/")[0], 1) + r1 * PRICES.get(p["name"].split("/")[1], 1)
+        r = requests.post(GRAPH_URL, json={"query": query}, timeout=15)
+        data = r.json()["data"]["pairs"]
         
-        lines.append(f"<b>{p['name']}</b>")
-        lines.append(f"Reserve0: {r0:.4f}")
-        lines.append(f"Reserve1: {r1:,.0f}")
-        lines.append(f"TVL ≈ ${tvl:,.0f}")
-        lines.append("")
-
-    msg = "\n".join(lines)
-    if TOKEN and CHAT:
-        requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage",
-                      json={"chat_id": CHAT, "text": msg, "parse_mode": "HTML"})
+        lines = ["🔵 <b>Aerodrome Base — Full Snapshot</b>",
+                 datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC"), ""]
+        
+        for p in data:
+            r0 = float(p["reserve0"])
+            r1 = float(p["reserve1"])
+            name = p["name"] or f"{p['token0']['symbol']}/{p['token1']['symbol']}"
+            lines.append(f"<b>{name}</b>")
+            lines.append(f"Reserve0: {r0:,.2f}")
+            lines.append(f"Reserve1: {r1:,.2f}")
+            lines.append(f"TVL ≈ ${r0 + r1:,.0f} (approx)")
+            lines.append("")
+        
+        send_telegram("\n".join(lines))
+        print("✅ Snapshot sent with", len(data), "pools")
+        
+    except Exception as e:
+        print("Graph query failed:", e)
 
 def main():
-    print("Bot started — waiting for commands or timer...")
-    last_snapshot = 0
-
+    print("Bot started using The Graph (no more RPC issues)")
+    last = 0
     while True:
-        time.sleep(10)
-        if time.time() - last_snapshot > POLL_INTERVAL:
-            print("Taking snapshot...")
-            snapshot()
-            last_snapshot = time.time()
+        time.sleep(30)
+        if time.time() - last > 300:  # every 5 minutes
+            get_snapshot()
+            last = time.time()
 
 if __name__ == "__main__":
     main()
