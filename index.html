@@ -273,6 +273,7 @@
 
 <script>
 const RPC = "https://mainnet.base.org";
+const SUBGRAPH = "https://api.studio.thegraph.com/query/73458/aerodrome-finance/version/latest";
 // Known ERC20 token addresses on Base
 const TOKENS = {
   WETH:  "0x4200000000000000000000000000000000000006",
@@ -313,7 +314,7 @@ async function getReserves(addr, t0addr, t1addr) {
   const padAddr = "000000000000000000000000" + addr.slice(2).toLowerCase();
   const balSel = "0x70a08231";
 
-  // Method 1: Try getReserves() for basic AMM pools
+  // Method 1: Basic AMM — getReserves()
   try {
     const hex = await rpc("eth_call", [{to:addr, data:"0x0902f1ac"},"latest"]);
     if (hex && hex !== "0x" && hex.length >= 130) {
@@ -323,7 +324,19 @@ async function getReserves(addr, t0addr, t1addr) {
     }
   } catch(e) {}
 
-  // Method 2: CL pool — use known token addresses, call balanceOf(poolAddress)
+  // Method 2: CL pool — call balance0()/balance1() directly on pool
+  // balance0() = 0x4d4c8b6d, balance1() = 0x6a627842  
+  try {
+    const b0hex = await rpc("eth_call", [{to:addr, data:"0x4d4c8b6d"},"latest"]);
+    const b1hex = await rpc("eth_call", [{to:addr, data:"0x6a627842"},"latest"]);
+    if (b0hex && b0hex !== "0x" && b1hex && b1hex !== "0x") {
+      const r0 = BigInt(b0hex);
+      const r1 = BigInt(b1hex);
+      if (r0 > 0n || r1 > 0n) return { r0, r1 };
+    }
+  } catch(e) {}
+
+  // Method 3: Use known token addresses balanceOf(pool)
   if (t0addr && t1addr) {
     try {
       const b0hex = await rpc("eth_call", [{to:t0addr, data:balSel+padAddr},"latest"]);
@@ -333,7 +346,7 @@ async function getReserves(addr, t0addr, t1addr) {
         const r1 = BigInt(b1hex);
         if (r0 > 0n || r1 > 0n) return { r0, r1 };
       }
-    } catch(e) { console.error("balanceOf error:", e); }
+    } catch(e) {}
   }
 
   return null;
