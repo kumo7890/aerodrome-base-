@@ -273,12 +273,22 @@
 
 <script>
 const RPC = "https://mainnet.base.org";
+// Known ERC20 token addresses on Base
+const TOKENS = {
+  WETH:  "0x4200000000000000000000000000000000000006",
+  USDC:  "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+  AERO:  "0x940181a94A35A4569E4529A3CDfB74e38FD98631",
+  cbBTC: "0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf",
+  msETH: "0x7Ba6F01772924a82D9626c126347A28299E98c98",
+  msUSD: "0x526728DBc96689597F85ae4cd716d4f7fCcBAE9C",
+};
+
 const POOLS = [
-  { address:"0x70acdf2ad0bf2402c957154f944c19ef4e1cbae1", name:"WETH/cbBTC",  token0:"WETH",  token1:"cbBTC", stable:false, d0:18, d1:8  },
-  { address:"0x6cdcb1c4a4d1c3c6d054b27ac5b77e89eafb971d", name:"USDC/AERO",  token0:"USDC",  token1:"AERO",  stable:false, d0:6,  d1:18 },
-  { address:"0x74f72788f4814d7ff3c49b44684aa98eee140c0e", name:"WETH/msETH", token0:"WETH",  token1:"msETH", stable:false, d0:18, d1:18 },
-  { address:"0xb2cc224c1c9fee385f8ad6a55b4d94e92359dc59", name:"WETH/USDC",  token0:"WETH",  token1:"USDC",  stable:false, d0:18, d1:6  },
-  { address:"0x7501bc8bb51616f79bfa524e464fb7b41f0b10fb", name:"msUSD/USDC", token0:"msUSD", token1:"USDC",  stable:true,  d0:18, d1:6  },
+  { address:"0x70acdf2ad0bf2402c957154f944c19ef4e1cbae1", name:"WETH/cbBTC",  token0:"WETH",  token1:"cbBTC", stable:false, d0:18, d1:8,  t0:TOKENS.WETH,  t1:TOKENS.cbBTC },
+  { address:"0x6cdcb1c4a4d1c3c6d054b27ac5b77e89eafb971d", name:"USDC/AERO",  token0:"USDC",  token1:"AERO",  stable:false, d0:6,  d1:18, t0:TOKENS.USDC,  t1:TOKENS.AERO  },
+  { address:"0x74f72788f4814d7ff3c49b44684aa98eee140c0e", name:"WETH/msETH", token0:"WETH",  token1:"msETH", stable:false, d0:18, d1:18, t0:TOKENS.WETH,  t1:TOKENS.msETH },
+  { address:"0xb2cc224c1c9fee385f8ad6a55b4d94e92359dc59", name:"WETH/USDC",  token0:"WETH",  token1:"USDC",  stable:false, d0:18, d1:6,  t0:TOKENS.WETH,  t1:TOKENS.USDC  },
+  { address:"0x7501bc8bb51616f79bfa524e464fb7b41f0b10fb", name:"msUSD/USDC", token0:"msUSD", token1:"USDC",  stable:true,  d0:18, d1:6,  t0:TOKENS.msUSD, t1:TOKENS.USDC  },
 ];
 const CONDITIONS = { tvl_below:"TVL drops below", tvl_above:"TVL rises above", ratio_change_pct:"Ratio changes by %" };
 
@@ -299,8 +309,11 @@ async function rpc(method, params) {
   return d.result;
 }
 
-async function getReserves(addr) {
-  // Method 1: Basic AMM — getReserves()
+async function getReserves(addr, t0addr, t1addr) {
+  const padAddr = "000000000000000000000000" + addr.slice(2).toLowerCase();
+  const balSel = "0x70a08231";
+
+  // Method 1: Try getReserves() for basic AMM pools
   try {
     const hex = await rpc("eth_call", [{to:addr, data:"0x0902f1ac"},"latest"]);
     if (hex && hex !== "0x" && hex.length >= 130) {
@@ -310,24 +323,18 @@ async function getReserves(addr) {
     }
   } catch(e) {}
 
-  // Method 2: CL pool — token0()/token1() then balanceOf(pool)
-  try {
-    const t0hex = await rpc("eth_call", [{to:addr, data:"0x0dfe1681"},"latest"]);
-    const t1hex = await rpc("eth_call", [{to:addr, data:"0xd21220a7"},"latest"]);
-    if (!t0hex || t0hex==="0x" || !t1hex || t1hex==="0x") return null;
-    // ABI-encoded address: 32 bytes, address is last 20 bytes (40 hex chars)
-    const t0 = "0x" + t0hex.slice(-40);
-    const t1 = "0x" + t1hex.slice(-40);
-    // balanceOf(address) selector = 0x70a08231, pad pool address to 32 bytes
-    const padAddr = "000000000000000000000000" + addr.slice(2).toLowerCase();
-    const b0hex = await rpc("eth_call", [{to:t0, data:"0x70a08231"+padAddr},"latest"]);
-    const b1hex = await rpc("eth_call", [{to:t1, data:"0x70a08231"+padAddr},"latest"]);
-    if (!b0hex || b0hex==="0x" || !b1hex || b1hex==="0x") return null;
-    const r0 = BigInt(b0hex);
-    const r1 = BigInt(b1hex);
-    if (r0 === 0n && r1 === 0n) return null;
-    return { r0, r1 };
-  } catch(e) { console.error("CL fetch error:", e); }
+  // Method 2: CL pool — use known token addresses, call balanceOf(poolAddress)
+  if (t0addr && t1addr) {
+    try {
+      const b0hex = await rpc("eth_call", [{to:t0addr, data:balSel+padAddr},"latest"]);
+      const b1hex = await rpc("eth_call", [{to:t1addr, data:balSel+padAddr},"latest"]);
+      if (b0hex && b0hex !== "0x" && b1hex && b1hex !== "0x") {
+        const r0 = BigInt(b0hex);
+        const r1 = BigInt(b1hex);
+        if (r0 > 0n || r1 > 0n) return { r0, r1 };
+      }
+    } catch(e) { console.error("balanceOf error:", e); }
+  }
 
   return null;
 }
@@ -493,7 +500,7 @@ async function loadAll() {
 
     await Promise.all(poolData.map(async (pool,i)=>{
       try {
-        const res = await getReserves(pool.address);
+        const res = await getReserves(pool.address, pool.t0, pool.t1);
         if(res){
           poolData[i].r0 = res.r0;
           poolData[i].r1 = res.r1;
