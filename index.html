@@ -325,14 +325,15 @@ async function getReserves(addr, t0addr, t1addr) {
   try {
     const t0res = await rpc("eth_call", [{to:addr, data:"0x0dfe1681"},"latest"]);
     const t1res = await rpc("eth_call", [{to:addr, data:"0xd21220a7"},"latest"]);
+    console.log("CL debug", addr.slice(0,10), "t0res:", t0res, "t1res:", t1res);
     if (t0res && t0res.length >= 66 && t1res && t1res.length >= 66) {
-      // extract address from ABI-encoded result (last 20 bytes = 40 hex chars)
       const tok0 = "0x" + t0res.slice(-40);
       const tok1 = "0x" + t1res.slice(-40);
-      // build balanceOf(addr) calldata: selector + 12 zero bytes + 20 byte address
+      console.log("CL tokens", tok0, tok1);
       const param = "000000000000000000000000" + addr.slice(2).toLowerCase();
       const bal0 = await rpc("eth_call", [{to:tok0, data:"0x70a08231"+param},"latest"]);
       const bal1 = await rpc("eth_call", [{to:tok1, data:"0x70a08231"+param},"latest"]);
+      console.log("CL balances", bal0, bal1);
       if (bal0 && bal0 !== "0x" && bal1 && bal1 !== "0x") {
         const r0 = BigInt(bal0);
         const r1 = BigInt(bal1);
