@@ -300,7 +300,7 @@ async function rpc(method, params) {
 }
 
 async function getReserves(addr) {
-  // Try basic AMM getReserves() first
+  // Method 1: Basic AMM — getReserves()
   try {
     const hex = await rpc("eth_call", [{to:addr, data:"0x0902f1ac"},"latest"]);
     if (hex && hex !== "0x" && hex.length >= 130) {
@@ -309,19 +309,26 @@ async function getReserves(addr) {
       if (r0 > 0n || r1 > 0n) return { r0, r1 };
     }
   } catch(e) {}
-  // Fallback: CL pool — read token0/token1 then balanceOf(pool)
+
+  // Method 2: CL pool — token0()/token1() then balanceOf(pool)
   try {
     const t0hex = await rpc("eth_call", [{to:addr, data:"0x0dfe1681"},"latest"]);
     const t1hex = await rpc("eth_call", [{to:addr, data:"0xd21220a7"},"latest"]);
     if (!t0hex || t0hex==="0x" || !t1hex || t1hex==="0x") return null;
-    const t0 = "0x" + t0hex.slice(26);
-    const t1 = "0x" + t1hex.slice(26);
-    const padAddr = addr.slice(2).toLowerCase().padStart(64,"0");
+    // ABI-encoded address: 32 bytes, address is last 20 bytes (40 hex chars)
+    const t0 = "0x" + t0hex.slice(-40);
+    const t1 = "0x" + t1hex.slice(-40);
+    // balanceOf(address) selector = 0x70a08231, pad pool address to 32 bytes
+    const padAddr = "000000000000000000000000" + addr.slice(2).toLowerCase();
     const b0hex = await rpc("eth_call", [{to:t0, data:"0x70a08231"+padAddr},"latest"]);
     const b1hex = await rpc("eth_call", [{to:t1, data:"0x70a08231"+padAddr},"latest"]);
     if (!b0hex || b0hex==="0x" || !b1hex || b1hex==="0x") return null;
-    return { r0: BigInt(b0hex), r1: BigInt(b1hex) };
-  } catch(e) {}
+    const r0 = BigInt(b0hex);
+    const r1 = BigInt(b1hex);
+    if (r0 === 0n && r1 === 0n) return null;
+    return { r0, r1 };
+  } catch(e) { console.error("CL fetch error:", e); }
+
   return null;
 }
 
